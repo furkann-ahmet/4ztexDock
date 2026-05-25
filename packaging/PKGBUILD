@@ -23,9 +23,9 @@ makedepends=(
   'pkgconf'
 )
 optdepends=(
-  'spectacle: ekran görüntüsü kısayolu için'
-  'kcmshell6: ayarlar kısayolları için'
-  'powerprofilesctl: laptop güç profili tile için'
+  'spectacle: screenshot shortcut'
+  'kcmshell6: settings shortcuts'
+  'powerprofilesctl: power profile tile (laptops only)'
 )
 provides=('4ztexdock')
 install=4ztexdock.install
