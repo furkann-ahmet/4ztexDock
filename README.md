@@ -1,110 +1,119 @@
 # 4ztexDock
 
-> KDE Plasma 5 & 6 için Wayland layer-shell taskbar / launcher / dock.
+> A Wayland layer-shell taskbar / launcher / dock for KDE Plasma 5 & 6.
 
-**Diller:** **Türkçe** · [English](README.en.md)
+**Languages:** [Türkçe](README.tr.md) · **English**
 
-4ztexDock, KDE Plasma için custom bir dock'tur. Plasma'nın default panel'inin
-yerine geçer; pinned launcher'lar, açık pencere task list'i, audio / network /
-notifications popup panelleri, system tray, saat ve global launcher menüsünü
-tek bir layer-shell window'da toplar.
+4ztexDock is a custom dock built to replace KDE Plasma's default panel. It
+brings together pinned launchers, an open-windows task list, audio / network /
+notification panels, the system tray, the clock and a global launcher menu —
+all inside a single layer-shell window.
 
 ![dock hero](screenshots/dock.png)
 
-> 🌀 **Vibecoded**: bu proje büyük ölçüde bir LLM (Claude) ile vibecoding
-> akışında geliştirildi — mimari kararlar, panel paneline implementasyon ve
-> sayısız iterasyon AI eşliğinde yapıldı. Kod incelenmiş ve test edilmiş olsa
-> da, "deneysel ürün" gözüyle bak. Bug bulursan ve fix önerisi getirirsen
-> seve seve merge ederim.
+> 🌀 **Vibecoded**: this project was built largely through vibecoding with an
+> LLM (Claude). From architectural decisions down to per-panel implementations,
+> almost every line went through AI-assisted iteration. The code has been
+> reviewed and tested, but treat it as experimental software. Bug reports and
+> fix PRs are very welcome.
 
 ---
 
-## Özellikler
+## Features
 
-**Launcher menü** — frequent app grid (LaunchTracker ile usage-weighted), arama
-input'u, klavye navigasyonu (↑/↓/Enter/Esc), folder ve session shortcut pill'leri,
-ayarlar tile'ı. **Meta** tuşu ile global olarak açılır (KGlobalAccel).
+**Launcher menu** — Shows your most-launched apps in a 4×2 grid, sorted by
+usage frequency via LaunchTracker. Search box at the top, full keyboard
+navigation with the arrow keys + Enter/Esc, folder shortcuts and session
+actions (log out, restart, shut down) at the bottom. Press **Meta** to open
+it from anywhere.
 
 ![launcher](screenshots/dock_launcher.png)
 
-**Audio paneli** — iki tab: çıkış/giriş cihazları ve sesli uygulamalar.
-PipeWire/PulseAudio `pactl` üzerinden. Anonim sink-input'lar için client level
-metadata (flatpak app_id, PID) lookup yapılır → Spotify, Discord, Web Audio gibi
-metadata'sız stream'ler de doğru isim + ikonla görünür.
+**Audio panel** — Two tabs: output/input devices and audio-producing apps.
+Driven by `pactl`, so PipeWire and PulseAudio both work the same way. For
+anonymous sink-inputs (think `media.name="audio-src"`), the dock looks up
+client-level metadata — flatpak `app_id` plus the actual host PID — so
+Spotify, Discord and browser Web Audio tabs all show up with the correct name
+and icon even when they don't advertise themselves directly.
 
 ![audio devices](screenshots/dock_audio_devices.png)
 ![audio apps](screenshots/dock_audio_apps.png)
 
-**Network paneli** — bağlantı türüne göre dinamik kart (Ethernet / WiFi / VPN),
-brightness slider (Solid PowerManagement DBus), VPN listesi (nmcli), action tile
-grid'i (lock screen, ekran görüntüsü, vs.).
+**Network panel** — Card shape adapts to the active connection type (Ethernet,
+Wi-Fi, or VPN). Below it: a brightness slider tied to KDE's Solid
+PowerManagement DBus, a list of VPNs from `nmcli`, and quick-action tiles for
+lock, screenshot, night mode, Bluetooth and settings.
 
 ![network](screenshots/dock_network.png)
 
-**Notification server** — `org.freedesktop.Notifications` DBus name'ini doğrudan
-kayıt eder; Slack, Discord, libnotify her şey dock'a düşer. Plasma'nın kendi
-daemon'u name'i tutuyorsa graceful fallback (politeness check).
+**Notification server** — The dock registers `org.freedesktop.Notifications`
+itself. Every notification — from Slack, Discord, `notify-send`, libnotify —
+goes straight to its notification panel. If another daemon (Plasma's own,
+dunst, mako…) already owns the name, the dock politely steps aside instead
+of fighting for it.
 
 ![notifications](screenshots/dock_notifications.png)
 
-**Now Playing modülü** — MPRIS player'ları (Spotify, Mozilla, vs.) tek tıkla
-kaynak seçimi ve play/pause/skip kontrolleri.
+**Now Playing module** — Pick which MPRIS player (Spotify, Mozilla, VLC…) to
+control with one click, then play / pause / skip directly from the dock.
 
 ![player source switcher](screenshots/dock_player_source.png)
 
-**System tray** — `org.kde.StatusNotifierWatcher` üzerinden tüm tray icon'ları
-host eder; sığmayanlar overflow popup'ında. Sağ tık context menüleri çalışır.
+**System tray** — Hosts every tray icon on the system via
+`org.kde.StatusNotifierWatcher`. Anything that doesn't fit ends up in the
+overflow popup; right-click context menus work in both places.
 
 ![tray overflow](screenshots/dock_tray.png)
 
-**Diğerleri**: CPU/RAM/network throughput widget, KWin task list (workspace
-filter), drag-to-reorder task button'lar, button pulse cue (minimize feedback).
+**More**: CPU/RAM usage + network throughput widget, the full KWin task list
+(workspace-filtered), drag-to-reorder for task buttons, and a pulse animation
+on the button when its window minimizes.
 
 ---
 
-## Compositor uyumluluğu
+## Compatibility
 
-| Ortam                      | Durum       | Not                                                                                    |
-| -------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| KDE Plasma 6 (Wayland)     | ✅ Tam      | Birincil hedef. Layer-shell + KWin scripting + ScreenShot2.                            |
-| KDE Plasma 6 (X11)         | ✅ Tam †    | `_NET_WM_WINDOW_TYPE_DOCK` + `_NET_WM_STRUT_PARTIAL` ile dock.                         |
-| KDE Plasma 5 (X11/Wayland) | ✅ Tam * †  | *Pencere preview thumbnail'ları yok (Plasma 5'te ScreenShot2 DBus API'si yok); ikon+başlık fallback'i. |
-| GNOME / Hyprland / sway    | ⚠️ Kısmi   | Audio + network + notification çalışır; task list çalışmaz (KWin yok).                 |
+| Environment                     | Status      | Notes                                                                 |
+| ------------------------------- | ----------- | --------------------------------------------------------------------- |
+| KDE Plasma 6 (Wayland)          | ✅ Full     | Primary target. Layer-shell + KWin scripting + ScreenShot2.           |
+| KDE Plasma 6 (X11)              | ✅ Full †   | `_NET_WM_WINDOW_TYPE_DOCK` + `_NET_WM_STRUT_PARTIAL` dock window.     |
+| KDE Plasma 5 (X11/Wayland)      | ✅ Full * † | *No window-preview thumbnails (no ScreenShot2 DBus in Plasma 5); icon + title fallback. |
+| GNOME / Hyprland / sway         | ⚠️ Partial  | Audio + network + notifications work; task list does not (no KWin).   |
 
-> **† Gerçek sistemde test edilmedi.** Plasma 6 X11 ve Plasma 5 dalları kodda
-> implemente edildi ve derlenip kontrol edildi, ancak maintainer'ın elinde
-> Plasma 6 Wayland dışında bir kurulum yok. Bu ortamlarda kullanıyorsan bug
-> raporu çok hoş karşılanır — `CONTRIBUTING.md`'de "Bug report" bölümü.
+> **† Untested in CI / on real systems.** Plasma 6 X11 and Plasma 5 paths are
+> implemented and code-validated but have not been verified on real hardware
+> by the maintainer. Bug reports very welcome — see `Bug report` section in
+> CONTRIBUTING.md.
 
-Runtime'da otomatik tespit eder: Wayland session'da layer-shell, X11 session'da
-EWMH dock window setup. Plasma 5 ya da 6, KWin scripting JS dual-API ile
-otomatik. KWin DBus servisi yoksa erken çıkar.
-
----
-
-## Kurulum
-
-### Gereksinimler
-
-Sistem kurulumlu olmalı:
-
-- **KDE Plasma 6** (önerilen) veya **KDE Plasma 5** (test edilmedi, riskli)
-- **Wayland** veya **X11** session
-- **Qt 6.6+** (build için private header'lar; daha eski sürümlerde fail edebilir)
-- **PipeWire/PulseAudio** (audio panel — eksikse panel devre dışı, dock çalışır)
-- **NetworkManager** (network panel — eksikse panel devre dışı, dock çalışır)
+The dock auto-detects the session type and Plasma version at startup: it uses
+the layer-shell protocol on Wayland and EWMH dock window setup on X11, and
+handles the Plasma 5 vs 6 KWin scripting API differences with a dual-API JS
+bridge. If the `org.kde.KWin` DBus service isn't available at all, it exits
+early.
 
 ---
 
-### Yol 1 — Arch Linux (en kolay, paket yöneticili)
+## Installation
 
-**AUR'dan (kararlı):**
+### Requirements
+
+- **KDE Plasma 6** (recommended) or **KDE Plasma 5** (untested, risky)
+- **Wayland** or **X11** session
+- **Qt 6.6+** (private headers used; older may fail to build)
+- **PipeWire / PulseAudio** (audio panel — if missing, panel disabled, dock still runs)
+- **NetworkManager** (network panel — if missing, panel disabled, dock still runs)
+
+---
+
+### Path 1 — Arch Linux (easiest, package-managed)
+
+**From AUR (stable):**
 
 ```sh
 yay -S 4ztexdock-git
 ```
 
-Veya manuel:
+Or manually:
 
 ```sh
 git clone https://aur.archlinux.org/4ztexdock-git.git
@@ -112,7 +121,7 @@ cd 4ztexdock-git
 makepkg -si
 ```
 
-**Yerel repo'dan (kaynak değişikliği yapıyorsan):**
+**From local repo (for source changes):**
 
 ```sh
 git clone https://github.com/furkann-ahmet/4ztexDock.git
@@ -120,24 +129,24 @@ cd 4ztexDock/packaging
 makepkg -si
 ```
 
-Paket kuruluyor:
+The package installs:
 
-| Konum | Ne |
+| Location | What |
 |---|---|
 | `/usr/bin/4ztexDock` | Binary |
 | `/usr/share/4ztexDock/style/dock.qss` | Stylesheet |
-| `/usr/share/applications/com.4ztex.dock.desktop` | App menüsü entry'si |
-| `/etc/xdg/autostart/com.4ztex.dock.desktop` | Plasma login'de auto-launch |
-| `/usr/share/icons/hicolor/scalable/apps/4ztex-icon.svg` | Hicolor ikonu |
+| `/usr/share/applications/com.4ztex.dock.desktop` | App menu entry |
+| `/etc/xdg/autostart/com.4ztex.dock.desktop` | Plasma login auto-launch |
+| `/usr/share/icons/hicolor/scalable/apps/4ztex-icon.svg` | Hicolor icon |
 | `/usr/share/licenses/4ztexdock/LICENSE` | GPL-3.0 |
-| `/usr/share/doc/4ztexdock/config.ini.example` | Config örnek |
+| `/usr/share/doc/4ztexdock/config.ini.example` | Config sample |
 
 ---
 
-### Yol 2 — Diğer distrolar (`install.sh --install-deps`)
+### Path 2 — Other distros (`install.sh --install-deps`)
 
-`install.sh` `/etc/os-release` üzerinden distro'yu tespit eder, apt/dnf/zypper/
-pacman ile bağımlılıkları kurar, build alır, dosyaları yerleştirir.
+`install.sh` reads `/etc/os-release` to detect the distro, installs deps via
+apt/dnf/zypper/pacman, builds, and installs the files.
 
 ```sh
 git clone https://github.com/furkann-ahmet/4ztexDock.git
@@ -145,26 +154,26 @@ cd 4ztexDock
 sudo ./install.sh --install-deps --system
 ```
 
-Bu tek komut şunları yapar:
+This single command:
 
-1. Distro tespiti (`/etc/os-release` ID alanı)
-2. Build + runtime bağımlılıklarını kur (Qt6, layer-shell-qt, xcb-ewmh, NetworkManager, PipeWire, gcc, make)
-3. `lrelease6` ile çevirileri derle (`.ts` → `.qm`)
-4. `qmake6` + `make -j$(nproc)` ile binary'i derle
-5. `/usr/local` altına yerleştir (binary, qss, icons, .desktop, autostart, LICENSE, config örneği)
-6. KDE service cache (`kbuildsycoca`) yenile
-7. Çalışan dock varsa restart et
+1. Detects distro (`/etc/os-release` ID)
+2. Installs build + runtime deps (Qt6, layer-shell-qt, xcb-ewmh, NetworkManager, PipeWire, gcc, make)
+3. Compiles translations (`lrelease6`, `.ts` → `.qm`)
+4. Builds via `qmake6` + `make -j$(nproc)`
+5. Installs under `/usr/local` (binary, qss, icons, .desktop, autostart, LICENSE, config sample)
+6. Refreshes KDE service cache (`kbuildsycoca`)
+7. Restarts running dock if any
 
-**Desteklenen distrolar** (paket adları script içinde):
+**Supported distros** (package names baked into the script):
 
-| Aile | Distrolar |
+| Family | Distros |
 |---|---|
 | Arch | Arch, CachyOS, EndeavourOS, Manjaro, ArcoLinux |
 | Debian | Debian, Ubuntu, Pop!_OS, Linux Mint, elementary, Kali, Raspbian |
 | Fedora | Fedora, RHEL, CentOS, Rocky, AlmaLinux, Nobara |
 | openSUSE | Tumbleweed, Leap |
 
-**Kullanıcı bazlı kurulum** (sudo gerektirmez, deps zaten kurulu olmalı):
+**User-local install** (no sudo; deps must already be present):
 
 ```sh
 ./install.sh --user
@@ -172,13 +181,14 @@ Bu tek komut şunları yapar:
 # config  → ~/.config/autostart/com.4ztex.dock.desktop
 ```
 
-Kullanıcı modunda `~/.local/bin` PATH'te değilse script uyarır; shell rc'ne ekle:
+In user mode, if `~/.local/bin` isn't in PATH, the script warns; add to your
+shell rc:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-**Yardım:**
+**Help:**
 
 ```sh
 ./install.sh --help
@@ -186,10 +196,10 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ---
 
-### Yol 3 — Bağımlılıkları elle kur, sonra install.sh
+### Path 3 — Install deps manually, then install.sh
 
-`--install-deps` kullanmak istemiyorsan (örn. spesifik versiyon istiyorsan)
-deps'i kendin kur, sonra build/install:
+If you don't want `--install-deps` (e.g. you want specific package versions),
+install deps yourself, then build/install:
 
 **Debian / Ubuntu:**
 
@@ -203,8 +213,8 @@ sudo apt install --no-install-recommends \
     build-essential pkg-config
 ```
 
-> ⚠️ Ubuntu < 24.04'te `layer-shell-qt-dev` paketi yok.
-> `sudo add-apt-repository ppa:kubuntu-ppa/backports` ya da kaynaktan build et.
+> ⚠️ On Ubuntu < 24.04, `layer-shell-qt-dev` is missing.
+> Use `sudo add-apt-repository ppa:kubuntu-ppa/backports` or build from source.
 
 **Fedora / RHEL / Rocky / AlmaLinux / Nobara:**
 
@@ -228,35 +238,35 @@ sudo zypper install -y \
     gcc-c++ make pkgconf
 ```
 
-Sonra build + install:
+Then build + install:
 
 ```sh
 git clone https://github.com/furkann-ahmet/4ztexDock.git
 cd 4ztexDock
-./install.sh --system        # /usr/local altına (sudo)
-# veya
-./install.sh --user          # ~/.local altına (no sudo)
+./install.sh --system        # to /usr/local (sudo)
+# or
+./install.sh --user          # to ~/.local (no sudo)
 ```
 
 ---
 
-### Yol 4 — Tamamen manuel (script'siz)
+### Path 4 — Fully manual (no script)
 
-`install.sh` çalışmıyor ya da debug için tüm adımları görmek istiyorsan:
+If `install.sh` doesn't work or you want to see every step for debugging:
 
 ```sh
 git clone https://github.com/furkann-ahmet/4ztexDock.git
 cd 4ztexDock
 
-# 1) Çeviriler
+# 1) Translations
 lrelease6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
-#   (Fedora'da lrelease-qt6, openSUSE'de lrelease6)
+#   (on Fedora it's lrelease-qt6, on openSUSE lrelease6)
 
 # 2) Build
 qmake6 4ztexDock.pro
 make -j$(nproc)
 
-# 3) Yerleştir (prefix = /usr/local)
+# 3) Install (prefix = /usr/local)
 PREFIX=/usr/local
 sudo install -Dm755 4ztexDock                  "$PREFIX/bin/4ztexDock"
 sudo install -Dm644 style/dock.qss             "$PREFIX/share/4ztexDock/style/dock.qss"
@@ -272,34 +282,42 @@ sed "s|@PREFIX@|$PREFIX|g" packaging/4ztexDock.desktop.in | \
 sudo cp /usr/share/applications/com.4ztex.dock.desktop \
         /etc/xdg/autostart/com.4ztex.dock.desktop
 
-# 5) License + config örneği
+# 5) License + config sample
 sudo install -Dm644 LICENSE                          "$PREFIX/share/licenses/4ztexdock/LICENSE"
 sudo install -Dm644 packaging/config.ini.example     "$PREFIX/share/doc/4ztexdock/config.ini.example"
 
-# 6) KDE cache yenile
-sudo kbuildsycoca6 --noincremental    # ya da kbuildsycoca5
+# 6) Refresh KDE cache
+sudo kbuildsycoca6 --noincremental    # or kbuildsycoca5
 sudo update-desktop-database -q /usr/share/applications
 ```
 
 ---
 
-## İlk kurulumdan sonra (KRİTİK ADIMLAR)
+## After installation (do these or things will be broken)
 
-Bu adımlar yapılmadan dock tam çalışmaz:
+The dock won't be fully functional until you've gone through these steps.
 
-### 1. Plasma'nın default panel'ini gizle
+### 1. Remove Plasma's default panel
 
-Default panel üzerine sağ tık → **"Remove Panel"** (KDE 6) ya da **"Panel Settings → Remove This Panel"** (KDE 5). Yoksa iki panel üst üste biner görsel çakışma yaratır.
+Right-click the default panel → **"Remove Panel"** (Plasma 6) or
+**"Panel Settings → Remove This Panel"** (Plasma 5). If you skip this, both
+panels will visually overlap at the bottom of the screen.
 
-### 2. Logout → Login (zorunlu)
+### 2. Log out and back in (required)
 
-Üç sebep için gerekli:
+Three different things need this:
 
-- **KWin ScreenShot2 caller cache'i**: XDG autostart'tan launch edilen dock, doğru `app-com.4ztex.dock-*.scope` systemd scope'una düşer. Bu olmadan KWin pencere preview thumbnail izni vermez (icon+başlık fallback'i ile çalışır ama deneyim kötü).
-- **KGlobalAccel Meta shortcut**: Plasma kicker Meta'yı tutuyorsa rebind gerekir.
-- **KApplicationTrader cache**: Yeni `.desktop` entry'sinin pickup edilmesi.
+- **KWin's ScreenShot2 caller cache** — When the dock is launched via XDG
+  autostart, Plasma places it into the right systemd scope
+  (`app-com.4ztex.dock-*.scope`). KWin grants window-preview thumbnail
+  permission by checking that scope; without it you'll fall back to an
+  icon + title only view (still functional, just less polished).
+- **KGlobalAccel Meta shortcut** — If Plasma's kicker already grabs Meta,
+  you'll need to free it (see the next step).
+- **KApplicationTrader cache** — Plasma needs to pick up the new `.desktop`
+  entry, which it does at session start.
 
-### 3. Meta tuşu Plasma kicker'a bağlıysa düzelt
+### 3. If Meta is bound to Plasma kicker, free it
 
 ```sh
 kwriteconfig6 --file kglobalshortcutsrc \
@@ -308,97 +326,92 @@ kwriteconfig6 --file kglobalshortcutsrc \
     "none,none,Activate Application Launcher"
 ```
 
-Sonra logout/login. (KDE 5 için: `kwriteconfig5`.)
+Then logout/login. (On KDE 5, use `kwriteconfig5`.)
 
-### 4. Kurulum doğrulama
+### 4. Verify install
 
 ```sh
-# Çalışan instance var mı
+# Is the dock running?
 pgrep -af 4ztexDock
 
-# Manuel başlat (autostart için logout/login bekleme)
+# Manual start (skip waiting for logout/login)
 /usr/bin/4ztexDock &
-# veya kullanıcı modunda
+# or user-mode
 ~/.local/bin/4ztexDock &
 
-# CLI çıktıları
+# CLI checks
 4ztexDock --version    # → "4ztexDock 0.1.0"
-4ztexDock --help       # → tam help metni
+4ztexDock --help       # → full help text
 
-# Notification akışını test
-notify-send "selam" "dock notification testi"
-# → dock'un bildirim panelinde görünmeli
+# Notification flow test
+notify-send "hi" "dock notification test"
+# → should appear in the dock's notifications panel
 ```
 
-Eğer hâlâ Plasma'nın paneli açıksa, dock'un altında küçük üst üste binme olabilir. Plasma panel'ini kaldır.
+If Plasma's default panel is still showing, the dock may visually overlap.
+Remove the Plasma panel.
 
-### 5. (Opsiyonel) Config dosyası
+### 5. (Optional) Config file
 
 ```sh
 mkdir -p ~/.config/4ztexDock
 cp /usr/local/share/doc/4ztexdock/config.ini.example ~/.config/4ztexDock/config.ini
 $EDITOR ~/.config/4ztexDock/config.ini
-# accent rengi, screen, frequent app limit ayarla
+# Set accent color, screen, frequent app limit
 pkill -x 4ztexDock; 4ztexDock &; disown
 ```
 
 ---
 
-## Yapılandırma
+## Configuration
 
 ### CLI
 
 ```sh
 4ztexDock --help
 4ztexDock --version
-4ztexDock --screen DP-2     # belirli bir ekran
+4ztexDock --screen DP-2     # pin to a specific screen
 ```
 
-### Config dosyası
+### Config file
 
-Path: `~/.config/4ztexDock/config.ini` (XDG_CONFIG_HOME respected). Şablon
-referansı `/usr/share/doc/4ztexdock/config.ini.example` ile kurulur.
+Path: `~/.config/4ztexDock/config.ini` (XDG_CONFIG_HOME respected). A template
+is installed at `/usr/share/doc/4ztexdock/config.ini.example`.
 
 ```ini
 [Display]
-screen=DP-3                ; connector name veya manufacturer/model/serial
+screen=DP-3                ; connector name, manufacturer, model or serial
 
 [Appearance]
 accent=167,139,250         ; R,G,B  (violet-400 default)
 
 [Launcher]
-frequentLimit=8            ; sık kullanılan grid: 1-16
+frequentLimit=8            ; frequent-apps grid size: 1..16
 ```
 
-Değişiklik sonrası dock'u restart et: `pkill -x 4ztexDock; /usr/bin/4ztexDock &; disown`.
+After editing, restart the dock: `pkill -x 4ztexDock; /usr/bin/4ztexDock &; disown`.
 
-### Logging kontrolü
+### Logging
 
-`QT_LOGGING_RULES` env var ile kategori-bazlı log on/off:
+Use `QT_LOGGING_RULES` env var for category-based log control:
 
 ```sh
-# Belirli kategoriyi sustur
-QT_LOGGING_RULES="dock.preview=false" 4ztexDock
-
-# Hepsini sustur
-QT_LOGGING_RULES="dock.*=false" 4ztexDock
-
-# Debug seviyesini de aç
-QT_LOGGING_RULES="dock.*.debug=true" 4ztexDock
+QT_LOGGING_RULES="dock.preview=false" 4ztexDock          # silence a category
+QT_LOGGING_RULES="dock.*=false" 4ztexDock                # silence all dock logs
+QT_LOGGING_RULES="dock.*.debug=true" 4ztexDock           # enable debug
 ```
 
-Kategoriler: `dock.env` (runtime checks), `dock.notif` (notification daemon),
-`dock.preview` (KWin ScreenShot2), `dock.security` (input validation).
+Categories: `dock.env`, `dock.notif`, `dock.preview`, `dock.security`.
 
 ### Stylesheet
 
-`style/dock.qss` — dev modda runtime'da `QFileSystemWatcher` ile reload edilir.
-Kurulu paketin QSS'i `/usr/share/4ztexDock/style/dock.qss` (root, dev iteration
-için repo'da düzenle).
+`style/dock.qss` — in dev mode, live-reloaded via `QFileSystemWatcher`.
+Installed copy: `/usr/share/4ztexDock/style/dock.qss` (root-owned, edit the
+repo copy for dev iteration).
 
 ---
 
-## Geliştirme
+## Development
 
 ```sh
 qmake6 4ztexDock.pro
@@ -406,48 +419,65 @@ make -j$(nproc)
 ./4ztexDock
 ```
 
-Stylesheet üzerinde çalışıyorsan QSS dosyasını kaydet — otomatik reload edilir
-(`QFileSystemWatcher`). C++ değişikliği için yeniden derleme + restart.
+For QSS work: edit `style/dock.qss` — auto-reloads. For C++ work, use
+`dev-watch.sh` (entr-based auto build+restart).
 
-`dev-watch.sh` C++ değişikliklerinde otomatik build+restart yapar.
+Tests:
 
----
+```sh
+cd tests
+qmake6 tests.pro
+make -j$(nproc)
+./run-all.sh
+```
 
-## Sorun giderme
-
-**"4ztexDock yalnızca Wayland session altında çalışır"** — KDE login ekranında
-session'ı "Plasma (Wayland)" seç.
-
-**"org.kde.KWin DBus servisi bulunamadı"** — KWin Wayland session'da değilsin
-ya da KWin henüz hazır değil (autostart'ı `After=plasma-workspace.target` ile
-kullan).
-
-**Bildirim panelinde hiç bildirim görünmüyor** — başka bir notification daemon
-(Plasma, dunst, mako) `org.freedesktop.Notifications` name'ini tutuyor.
-Politeness check'imiz onun önüne geçmez. O daemon'u devre dışı bırak ya da
-"dock notifications only" modu istiyorsan o daemon'un kayıt yapmasını engelle.
-
-**Meta tuşu Plasma kicker'ı açıyor** —
-`~/.config/kglobalshortcutsrc` dosyasında `[plasmashell][activate application launcher]`
-satırını `none,none,Activate Application Launcher` yap, logout/login.
-
-**Pencere preview thumbnail'leri çalışmıyor** — KWin ScreenShot2 caller check'i
-fail oldu. `~/.local/share/applications/com.4ztex.dock.desktop` gibi bir kullanıcı
-override dosyası varsa sil, sonra `kbuildsycoca6 --noincremental` çalıştır,
-logout/login.
+22 unit tests across `audio_parser_test` + `icons_test`.
 
 ---
 
-## Katkı
+## Troubleshooting
 
-PR'lar memnuniyetle. [CONTRIBUTING.md](CONTRIBUTING.md) build + style kılavuzu
-içerir. Bug report açarken `4ztexDock --version` çıktısını ve session log'unu
-(`journalctl --user -b | grep 4ztexDock`) ekle.
+**"4ztexDock only runs under a Wayland or X11 session"** — Pick a "Plasma"
+session on the login screen (either Wayland or X11).
+
+**"org.kde.KWin DBus service not found"** — Either KWin hasn't started yet
+(give Plasma a few seconds when launching manually) or you're on a different
+compositor altogether (GNOME / Hyprland / sway). KDE Plasma is required.
+
+**No notifications show up in the dock** — Another notification daemon
+(Plasma's own, dunst, mako, …) already owns `org.freedesktop.Notifications`.
+The dock's politeness check means it won't steal the name; if you want
+notifications routed to the dock, disable the other daemon.
+
+**Meta key opens Plasma's kicker instead of the dock** — Clear Plasma's
+binding:
+
+```sh
+kwriteconfig6 --file kglobalshortcutsrc --group plasmashell \
+    --key "activate application launcher" "none,none,Activate Application Launcher"
+```
+
+Then log out / back in.
+
+**Window preview thumbnails don't appear** — KWin's ScreenShot2 caller check
+isn't passing. The usual culprit is a stale user-side `.desktop` override.
+Check `~/.local/share/applications/com.4ztex.dock.desktop` — if it exists and
+doesn't match the installed one, remove it, then run
+`kbuildsycoca6 --noincremental` and log out / back in.
 
 ---
 
-## Lisans
+## Contributing
 
-GPL-3.0-or-later. Detaylar için [LICENSE](LICENSE).
+PRs are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for build and style
+guidelines. When filing a bug report, please include `4ztexDock --version`,
+`qmake6 -query QT_VERSION`, `kwin_wayland --version` (or `kwin_x11`), and a
+recent session log: `journalctl --user -b 0 | grep -i 4ztex | tail -50`.
+
+---
+
+## License
+
+GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 Copyright (C) 2026 4ztex.

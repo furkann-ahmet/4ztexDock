@@ -8,45 +8,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    name: Build + Unit Tests (Ubuntu)
+  # ------------------------------------------------------------------
+  # Job 1: Unit tests. Pure-data parsers (audio_parser, icons) — no
+  # layer-shell or KWin dependency. Runs on plain Ubuntu noble with Qt6.
+  # ------------------------------------------------------------------
+  unit-tests:
+    name: Unit tests (Ubuntu, Qt6)
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Qt 6 and build deps
+      - name: Install Qt 6 base + test deps
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             qmake6 \
             qt6-base-dev \
             qt6-base-dev-tools \
-            qt6-l10n-tools \
-            qt6-wayland-dev \
-            qt6-wayland-dev-tools \
-            libqt6dbus6 \
-            libqt6network6 \
             libqt6test6 \
-            libqt6widgets6 \
-            libqt6opengl6-dev \
-            libxkbcommon-dev \
-            libwayland-dev \
-            libwayland-client0 \
-            layer-shell-qt-dev \
-            networkmanager \
-            pipewire-pulse \
             build-essential
 
       - name: Verify Qt version
         run: qmake6 -query QT_VERSION
-
-      - name: Build main app
-        run: |
-          lrelease6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
-          qmake6 4ztexDock.pro
-          make -j$(nproc)
 
       - name: Build + run unit tests
         env:
@@ -55,20 +40,65 @@ jobs:
           cd tests
           qmake6 tests.pro
           make -j$(nproc)
-          # Her test binary'sini sırayla çalıştır.
           for t in audio_parser_test/audio_parser_test icons_test/icons_test; do
             echo "::group::Running $t"
             ./$t
             echo "::endgroup::"
           done
 
-      - name: Fail on warnings (main)
+  # ------------------------------------------------------------------
+  # Job 2: Best-effort full build. Plasma 6 Qt6 layer-shell-qt-dev isn't
+  # in Ubuntu noble's main repo — we add the Kubuntu backports PPA.
+  # If the PPA fails to install layer-shell-qt6, the job is marked as
+  # failing — useful signal but doesn't block merges.
+  # ------------------------------------------------------------------
+  full-build:
+    name: Full build (Ubuntu, best-effort)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add Kubuntu backports PPA (Plasma 6 / Qt6 layer-shell-qt)
         run: |
-          cd "$GITHUB_WORKSPACE"
-          make clean
+          sudo add-apt-repository -y ppa:kubuntu-ppa/backports
+          sudo apt-get update
+
+      - name: Install build deps
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            qmake6 \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-l10n-tools \
+            qt6-wayland-dev \
+            qt6-wayland-dev-tools \
+            libqt6test6 \
+            libqt6opengl6-dev \
+            libxkbcommon-dev \
+            libwayland-dev \
+            libxcb1-dev \
+            libxcb-ewmh-dev \
+            layer-shell-qt-dev \
+            network-manager \
+            pipewire-pulse \
+            build-essential
+
+      - name: Compile translations
+        run: |
+          lrelease6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts \
+            || lrelease-qt6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
+
+      - name: Build main app
+        run: |
           qmake6 4ztexDock.pro
-          # 2>&1 ile stderr'i yakala; grep warning satırı varsa exit 1
-          if make -j$(nproc) 2>&1 | tee /tmp/build.log | grep -q "warning:"; then
+          make -j$(nproc) 2>&1 | tee /tmp/build.log
+
+      - name: Fail on warnings
+        run: |
+          if grep -q "warning:" /tmp/build.log; then
             echo "::error::Build produced compiler warnings"
             grep "warning:" /tmp/build.log
             exit 1

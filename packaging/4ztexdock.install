@@ -1,23 +1,24 @@
-# Pacman install/upgrade hook — KDE sycoca cache'ini yenile ki yeni .desktop'taki
-# ScreenShot2 izni pickup edilsin. Auto-start XDG autostart üzerinden: Plasma
-# /etc/xdg/autostart/com.4ztex.dock.desktop'ı session açılışında launch eder.
+# Pacman install/upgrade hook — refreshes the KDE sycoca cache so the new
+# .desktop's ScreenShot2 permission is picked up. Auto-start goes through
+# XDG autostart: Plasma launches /etc/xdg/autostart/com.4ztex.dock.desktop
+# when the session opens.
 
 post_install() {
     _refresh
     cat <<EOF
-==> 4ztexDock yüklendi.
-==> Plasma'dan ÇIKIŞ → tekrar GİRİŞ yap (Plasma autostart bizi launch edecek
-    + KApplicationTrader cache'i tazelenecek).
-==> Manuel başlatma istersen:  /usr/bin/4ztexDock &
+==> 4ztexDock installed.
+==> Log OUT of Plasma → log back IN (Plasma autostart will launch it and
+    KApplicationTrader will refresh its cache).
+==> To start it manually:  /usr/bin/4ztexDock &
 EOF
 }
 
 post_upgrade() {
     _refresh
     cat <<EOF
-==> 4ztexDock güncellendi.
-==> Çalışan instance'ı yenilemek için:  pkill -x 4ztexDock
-    (autostart ya da manuel olarak tekrar başlatılır)
+==> 4ztexDock upgraded.
+==> To refresh the running instance:  pkill -x 4ztexDock
+    (it will be relaunched by autostart or manually)
 EOF
 }
 

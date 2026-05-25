@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# 4ztexDock — kaynaktan derleme + kurulum scripti.
+# 4ztexDock — build-from-source + install script.
 #
-# Arch Linux için tavsiye edilen yol packaging/PKGBUILD ile makepkg.
-# Bu script Arch dışı distrolar için (Debian, Fedora, openSUSE, vs.):
-#   - bağımlılıkları kontrol et
-#   - qmake6 + make ile derle (translations dahil)
-#   - binary + qss + .desktop + autostart + icon'u doğru yere yerleştir
+# On Arch the preferred path is packaging/PKGBUILD via makepkg. This script
+# is for non-Arch distros (Debian, Fedora, openSUSE, etc.) and:
+#   - checks dependencies
+#   - builds with qmake6 + make (translations included)
+#   - lays out binary + qss + .desktop + autostart + icons in the right paths
 #
-# Kullanım:
-#   ./install.sh --user      → ~/.local/ altına kurar (sudo yok)
-#   ./install.sh --system    → /usr/local/ altına kurar (sudo gerekir)
+# Usage:
+#   ./install.sh --user      → install into ~/.local/  (no sudo)
+#   ./install.sh --system    → install into /usr/local/ (sudo required)
 #   ./install.sh --help
 
 set -euo pipefail
 
 # --------------------------------------------------------------------------
-# CLI parsing — birden fazla flag kabul eder, sırasız.
+# CLI parsing — accepts multiple flags, order-independent.
 # --------------------------------------------------------------------------
 MODE="user"
 SKIP_BUILD=0
@@ -28,29 +28,29 @@ while [[ $# -gt 0 ]]; do
         --install-deps)   INSTALL_DEPS=1 ;;
         -h|--help)
             cat <<EOF
-Kullanım: $0 [--user|--system] [--install-deps] [--no-build]
+Usage: $0 [--user|--system] [--install-deps] [--no-build]
 
-  --user           (varsayılan) ~/.local altına kurar, sudo gerektirmez
-  --system         /usr/local altına kurar, sudo ile çalıştır
-  --install-deps   Distro'yu tespit edip build + runtime bağımlılıklarını
-                   apt/dnf/zypper/pacman ile kurar (sudo gerekir).
-                   Desteklenen: Debian/Ubuntu, Fedora, openSUSE, Arch.
-  --no-build       Derleme adımını atla (binary repo'da hazır olduğunda)
+  --user           (default) install into ~/.local, no sudo required
+  --system         install into /usr/local, run with sudo
+  --install-deps   detect the distro and install build + runtime
+                   dependencies via apt/dnf/zypper/pacman (sudo required).
+                   Supported: Debian/Ubuntu, Fedora, openSUSE, Arch.
+  --no-build       skip the build step (when the binary is already present)
 
-Tipik akış:
-  ./install.sh --install-deps --system   # tek seferde her şey
-  veya
-  sudo apt install qt6-base-dev ...      # kendi dist komutunla deps
-  ./install.sh --user                    # sonra build+kurulum
+Typical flow:
+  sudo ./install.sh --install-deps --system   # everything in one go
+  or
+  sudo apt install qt6-base-dev ...           # deps via your package manager
+  ./install.sh --user                         # then build + install
 
-Önce (varsa) deps kurulur → build (qmake6 + make) → dosyalar yerleştirilir.
-Çalışan dock varsa otomatik restart edilir.
+Order: (optional) install deps → build (qmake6 + make) → place files.
+If the dock is already running it's automatically restarted.
 EOF
             exit 0
             ;;
         *)
-            echo "Bilinmeyen argüman: $1" >&2
-            echo "Yardım: $0 --help" >&2
+            echo "Unknown argument: $1" >&2
+            echo "Help: $0 --help" >&2
             exit 2
             ;;
     esac
@@ -60,7 +60,7 @@ done
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SRC_DIR"
 
-# Renkli output
+# Colored output
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
@@ -75,7 +75,7 @@ error() { echo -e "${RED}==>${RESET} $*" >&2; }
 if [[ "$MODE" == "system" ]]; then
     PREFIX="/usr/local"
     if [[ $EUID -ne 0 ]]; then
-        info "--system için sudo gerekir; sudo ile yeniden çalıştır:"
+        info "--system requires sudo; re-run with sudo:"
         echo "  sudo $0 --system"
         exit 1
     fi
@@ -84,13 +84,13 @@ else
     PREFIX="$HOME/.local"
     SUDO=""
 fi
-info "Kurulum modu: $MODE (prefix=$PREFIX)"
+info "Install mode: $MODE (prefix=$PREFIX)"
 
 # --------------------------------------------------------------------------
-# Distro detection + (opsiyonel) auto-install deps
+# Distro detection + (optional) auto-install deps
 # --------------------------------------------------------------------------
 
-# /etc/os-release ID'sine bakar: arch, debian, ubuntu, fedora, opensuse-*, ...
+# Reads /etc/os-release ID: arch, debian, ubuntu, fedora, opensuse-*, ...
 detect_distro() {
     if [[ -r /etc/os-release ]]; then
         # shellcheck disable=SC1091
@@ -101,8 +101,8 @@ detect_distro() {
     fi
 }
 
-# Distro'ya göre apt/dnf/zypper/pacman komutunu döndür + paket isimleri.
-# Çıktı: stdout'a "PKGMGR pkg1 pkg2 pkg3 ..." formatında yazar.
+# Returns the package-manager command (apt/dnf/zypper/pacman) + package
+# names appropriate for the given distro. Writes "PKGMGR pkg1 pkg2 ...".
 deps_command_for() {
     local distro="$1"
     case "$distro" in
@@ -142,32 +142,32 @@ deps_command_for() {
                  "gcc-c++" "make" "pkgconf"
             ;;
         *)
-            echo ""  # bilinmiyor
+            echo ""  # unknown
             ;;
     esac
 }
 
 if [[ $INSTALL_DEPS -eq 1 ]]; then
     if [[ $EUID -ne 0 ]] && [[ "$MODE" != "system" ]]; then
-        # --install-deps system pkg manager kullanır, sudo şart
-        error "--install-deps sudo gerektirir. Şöyle kullan:"
+        # --install-deps uses the system package manager; sudo required
+        error "--install-deps requires sudo. Use it like:"
         echo "  sudo $0 --install-deps [--user|--system]"
         exit 1
     fi
 
     DISTRO=$(detect_distro)
-    info "Distro tespit edildi: $DISTRO"
+    info "Detected distro: $DISTRO"
     DEPS_CMD=$(deps_command_for "$DISTRO")
     if [[ -z "$DEPS_CMD" ]]; then
-        error "Bilinmeyen distro: $DISTRO"
-        echo "Bağımlılıkları elle kur, README.md'deki distro bölümüne bak."
+        error "Unsupported distro: $DISTRO"
+        echo "Install the dependencies manually — see the per-distro section in README.md."
         exit 5
     fi
-    info "Bağımlılıklar kuruluyor:"
+    info "Installing dependencies:"
     echo "  $DEPS_CMD"
     # shellcheck disable=SC2086
     $DEPS_CMD
-    info "Bağımlılık kurulumu tamamlandı."
+    info "Dependency installation complete."
 fi
 
 # --------------------------------------------------------------------------
@@ -175,18 +175,18 @@ fi
 # --------------------------------------------------------------------------
 check_cmd() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        error "Eksik bağımlılık: $1"
+        error "Missing dependency: $1"
         local distro
         distro=$(detect_distro)
         local cmd
         cmd=$(deps_command_for "$distro")
         if [[ -n "$cmd" ]]; then
-            echo "Bağımlılıkları kurmak için ($distro):"
+            echo "To install dependencies on $distro:"
             echo "  sudo $cmd"
             echo ""
-            echo "Veya: $0 --install-deps --system"
+            echo "Or: $0 --install-deps --system"
         else
-            echo "Distro'na göre paketleri elle kur (README'de liste var)."
+            echo "Install packages manually for your distro (list in README)."
         fi
         exit 3
     fi
@@ -194,11 +194,11 @@ check_cmd() {
 
 LRELEASE=""
 if [[ $SKIP_BUILD -eq 0 ]]; then
-    info "Bağımlılıklar kontrol ediliyor..."
+    info "Checking dependencies..."
     check_cmd qmake6
     check_cmd make
     check_cmd g++
-    # lrelease tool adı dağıtıma göre değişiyor: lrelease6, lrelease-qt6, lrelease
+    # lrelease tool name varies by distro: lrelease6 / lrelease-qt6 / lrelease
     for tool in lrelease6 lrelease-qt6 lrelease; do
         if command -v "$tool" >/dev/null 2>&1; then
             LRELEASE="$tool"
@@ -206,15 +206,15 @@ if [[ $SKIP_BUILD -eq 0 ]]; then
         fi
     done
     if [[ -z "$LRELEASE" ]]; then
-        warn "lrelease (Qt6) bulunamadı — i18n .qm dosyaları derlenmeyecek."
-        warn "Çeviriler eksik kalır ama dock yine de Türkçe (source) ile çalışır."
+        warn "lrelease (Qt6) not found — i18n .qm files won't be compiled."
+        warn "Translations will be missing but the dock will still run in its source language (Turkish)."
     fi
 fi
 
-# Runtime tool'lar (warn-only)
+# Runtime tools (warn-only)
 for tool in pactl nmcli; do
     if ! command -v "$tool" >/dev/null 2>&1; then
-        warn "Runtime tool '$tool' bulunamadı — ilgili panel devre dışı kalacak."
+        warn "Runtime tool '$tool' not found — its panel will be disabled."
     fi
 done
 
@@ -222,7 +222,7 @@ done
 # Build
 # --------------------------------------------------------------------------
 if [[ $SKIP_BUILD -eq 0 ]]; then
-    info "Çeviri .qm dosyaları derleniyor..."
+    info "Compiling translation .qm files..."
     if [[ -n "$LRELEASE" ]]; then
         "$LRELEASE" translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
     fi
@@ -233,7 +233,7 @@ if [[ $SKIP_BUILD -eq 0 ]]; then
 fi
 
 if [[ ! -f "$SRC_DIR/4ztexDock" ]]; then
-    error "Binary '4ztexDock' bulunamadı. --no-build kullandıysan önce manuel derle."
+    error "Binary '4ztexDock' not found. If you used --no-build, build manually first."
     exit 4
 fi
 
@@ -247,7 +247,7 @@ DESKTOP_DIR="$PREFIX/share/applications"
 LICENSE_DIR="$PREFIX/share/licenses/4ztexdock"
 DOC_DIR="$PREFIX/share/doc/4ztexdock"
 
-# Autostart konumu: --system'de /etc/xdg/autostart, --user'da ~/.config/autostart
+# Autostart location: /etc/xdg/autostart under --system, ~/.config/autostart under --user
 if [[ "$MODE" == "system" ]]; then
     AUTOSTART_DIR="/etc/xdg/autostart"
 else
@@ -280,7 +280,7 @@ if [[ -f "$SRC_DIR/icons/4ztex-icon.svg" ]]; then
         "$ICON_DIR/4ztex-icon.svg"
 fi
 
-# .desktop'ı PREFIX'e göre template'ten oluştur
+# Build the .desktop from the template, substituting @PREFIX@
 TMP_DESKTOP="$(mktemp --suffix=.desktop)"
 sed "s|@PREFIX@|$PREFIX|g" "$SRC_DIR/packaging/4ztexDock.desktop.in" \
     > "$TMP_DESKTOP"
@@ -297,7 +297,7 @@ info "License → $LICENSE_DIR/LICENSE"
 install_file 644 "$SRC_DIR/LICENSE" "$LICENSE_DIR/LICENSE"
 
 if [[ -f "$SRC_DIR/packaging/config.ini.example" ]]; then
-    info "Config örneği → $DOC_DIR/config.ini.example"
+    info "Sample config → $DOC_DIR/config.ini.example"
     install_file 644 "$SRC_DIR/packaging/config.ini.example" \
         "$DOC_DIR/config.ini.example"
 fi
@@ -305,7 +305,7 @@ fi
 # --------------------------------------------------------------------------
 # Refresh KDE caches
 # --------------------------------------------------------------------------
-info "KDE service cache yenileniyor..."
+info "Refreshing KDE service cache..."
 for cmd in kbuildsycoca6 kbuildsycoca5; do
     if command -v "$cmd" >/dev/null 2>&1; then
         "$cmd" --noincremental 2>/dev/null || true
@@ -324,7 +324,7 @@ fi
 # --------------------------------------------------------------------------
 if [[ "$MODE" == "user" ]]; then
     if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-        warn "$BIN_DIR PATH'te değil. Shell rc dosyana ekle:"
+        warn "$BIN_DIR is not in PATH. Add this to your shell rc:"
         echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
     fi
 fi
@@ -333,7 +333,7 @@ fi
 # Restart running instance
 # --------------------------------------------------------------------------
 if pgrep -x 4ztexDock >/dev/null 2>&1; then
-    info "Çalışan 4ztexDock instance'ı restart ediliyor..."
+    info "Restarting running 4ztexDock instance..."
     pkill -x 4ztexDock || true
     sleep 0.3
     nohup "$BIN_DIR/4ztexDock" >/dev/null 2>&1 &
@@ -344,21 +344,21 @@ fi
 # Done
 # --------------------------------------------------------------------------
 echo ""
-info "Kurulum tamamlandı ✓"
+info "Installation complete ✓"
 echo ""
 cat <<EOF
-Sonraki adımlar:
+Next steps:
 
-  1. Plasma'nın default panel'ini gizle (sağ tık → Remove Panel).
-  2. Plasma'dan ÇIKIŞ → tekrar GİRİŞ yap.
-     XDG autostart entry'si Plasma launcher tarafından doğru systemd scope'ta
-     başlatılır → KWin ScreenShot2 caller cache'i tazelenir → pencere
-     preview thumbnail'leri çalışır.
+  1. Hide Plasma's default panel (right-click → Remove Panel).
+  2. Log OUT of Plasma → log back IN.
+     The XDG autostart entry will be launched by Plasma in the right systemd
+     scope → KWin's ScreenShot2 caller cache refreshes → window preview
+     thumbnails start working.
 
-  3. Manuel başlatma:  $BIN_DIR/4ztexDock &
+  3. Manual start:    $BIN_DIR/4ztexDock &
 
-  4. Config dosyası:   ~/.config/4ztexDock/config.ini
-     (örnek: $DOC_DIR/config.ini.example)
+  4. Config file:     ~/.config/4ztexDock/config.ini
+     (sample at:      $DOC_DIR/config.ini.example)
 
   5. CLI:
      $BIN_DIR/4ztexDock --help

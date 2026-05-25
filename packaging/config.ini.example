@@ -1,21 +1,22 @@
-# 4ztexDock — kullanıcı config dosyası
-# Konum: ~/.config/4ztexDock/config.ini
+# 4ztexDock — user config file
+# Location: ~/.config/4ztexDock/config.ini
 #
-# Tüm key'ler opsiyonel. Bu dosya bir referans şablon — istediklerini
-# açıp düzenle, gerisini sil. Değişiklik sonrası dock'u restart et:
+# Every key is optional. This file is a reference template — uncomment what
+# you want to change and delete the rest. After editing, restart the dock:
 #   pkill -x 4ztexDock; /usr/bin/4ztexDock &; disown
 
 [Display]
-# Hangi ekran üzerinde dock açılsın. Boşsa otomatik (KDE primary → Qt primary).
-# Connector adı (DP-1, HDMI-A-1, eDP-1) veya manufacturer/model/serial.
-# `4ztexDock --help` start'ta available screens'i log'lar.
+# Which screen the dock should open on. Empty = auto (KDE primary → Qt primary).
+# Accepts the connector name (DP-1, HDMI-A-1, eDP-1) or
+# manufacturer/model/serial. `4ztexDock --help` shows the available screens
+# at startup.
 #screen=DP-3
 
 [Appearance]
-# Accent rengi — slider sub-page, focused border, active row highlight.
-# Format: R,G,B (her biri 0-255).
+# Accent color — slider sub-page, focused border, active row highlight.
+# Format: R,G,B (each 0-255).
 # Default: 167,139,250 (violet-400 — Tailwind palette)
-# Diğer öneriler:
+# Other suggestions:
 #   59,130,246    blue-500
 #   34,197,94     green-500
 #   239,68,68     red-500
@@ -23,6 +24,6 @@
 #accent=167,139,250
 
 [Launcher]
-# Sık Kullanılanlar grid'inde kaç app gözüksün (1-16).
-# Default: 8 (4×2 grid). Çok artırırsan launcher menüsü uzar.
+# How many apps to show in the Frequent grid (1-16).
+# Default: 8 (4×2 grid). Larger values make the launcher menu taller.
 #frequentLimit=8
