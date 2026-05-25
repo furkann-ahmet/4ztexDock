@@ -14,6 +14,8 @@ bir dock. Sabitlediğin uygulamalar, açık pencerelerin listesi, ses / ağ /
 bildirim panelleri, sistem tray, saat ve global launcher menüsü — hepsi tek bir
 layer-shell penceresinde toplanıyor.
 
+https://github.com/user-attachments/assets/ef9e0e08-ccaf-4f3f-98cd-7d8b5b3b945e
+
 ![dock hero](screenshots/dock.png)
 
 > 🌀 **Vibecoded**: bu proje büyük ölçüde bir LLM (Claude) ile vibecoding

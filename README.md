@@ -14,6 +14,8 @@ brings together pinned launchers, an open-windows task list, audio / network /
 notification panels, the system tray, the clock and a global launcher menu —
 all inside a single layer-shell window.
 
+https://github.com/user-attachments/assets/ef9e0e08-ccaf-4f3f-98cd-7d8b5b3b945e
+
 ![dock hero](screenshots/dock.png)
 
 > 🌀 **Vibecoded**: this project was built largely through vibecoding with an
