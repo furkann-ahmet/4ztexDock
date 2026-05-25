@@ -1949,6 +1949,19 @@ public:
     // kullanmalı (widget->width()/height() değil).
     QSize contentSize() const { return contentSize_; }
 
+    // Subclass'lar layout sonrası gerçek içerik boyutuyla bunu çağırır.
+    // Outer widget boyutu = content + shadow pad'ler. Doğrudan setFixedSize
+    // ÇAĞIRMAYIN — content size'a shadow pad eklenmediği için layout squash
+    // olur ve item'lar kayar.
+    void setContentSize(const QSize &size)
+    {
+        contentSize_ = size;
+        setFixedSize(size.width() + 2 * kShadowPadSide,
+                      size.height() + kShadowPadTop + kShadowPadBottom);
+        setContentsMargins(kShadowPadSide, kShadowPadTop,
+                            kShadowPadSide, kShadowPadBottom);
+    }
+
     enum HorizontalAlign { AlignLeft, AlignHCenter, AlignRight };
 
     // Anchor widget'ın ÜSTÜNE konumlandırıp gösterir. Tongue (alt kenardaki
@@ -4825,13 +4838,16 @@ public:
         : GlassPopup(QSize(260, 100), parent), item_(item)
     {
         auto *col = new QVBoxLayout(this);
-        col->setContentsMargins(10, 10, 10, 10);
+        // Sıfır iç margin: layout, GlassPopup'ın shadow pad'lerinin tam
+        // içinden başlasın. Item'lara kendi içlerinde padding QSS'te.
+        col->setContentsMargins(8, 8, 8, 8);
         col->setSpacing(2);
 
-        const int rowHeight = 30;
-        const int sepHeight = 7;
-        int totalHeight = 20;     // top + bottom padding
-        int maxLabelWidth = 120;  // floor
+        // Layout'a item'ları ekle — gerçek yükseklik için sonra sizeHint
+        // alacağız (manuel piksel sayımı Qt'nin layout policy'siyle drift'e
+        // yol açıyordu, item'lar squash oluyordu).
+        constexpr int kRowHeight = 30;
+        int maxLabelWidth = 120;
 
         for (const TrayMenuEntry &e : entries) {
             if (e.separator) {
@@ -4841,7 +4857,6 @@ public:
                 line->setStyleSheet(
                     "background: rgba(255,255,255, 22); border: none;");
                 col->addWidget(line);
-                totalHeight += sepHeight;
                 continue;
             }
 
@@ -4853,7 +4868,7 @@ public:
 
             auto *btn = new QPushButton(label);
             btn->setProperty("class", "overflowItem");
-            btn->setFixedHeight(rowHeight);
+            btn->setFixedHeight(kRowHeight);
             btn->setCursor(Qt::PointingHandCursor);
             btn->setEnabled(e.enabled);
 
@@ -4881,10 +4896,19 @@ public:
             });
 
             col->addWidget(btn);
-            totalHeight += rowHeight + 2;
         }
 
-        setFixedSize(std::clamp(maxLabelWidth + 20, 200, 400), totalHeight);
+        // Layout'un kendi hesapladığı yükseklik — manuel piksel toplaması
+        // separator ve spacing'leri yanlış sayıyor, gerçek layout'la drift'e
+        // yol açıyordu. layout->sizeHint() top/bottom margin + tüm widget
+        // height + (N-1) spacing'i doğru toplar.
+        col->activate();
+        const QSize contentHint(
+            std::clamp(maxLabelWidth + 20, 200, 400),
+            col->sizeHint().height());
+        // setContentSize shadow pad'leri ekler → outer widget doğru boyutta
+        // olur, layout squash olmaz, item'lar kaymaz.
+        setContentSize(contentHint);
     }
 
 private:
