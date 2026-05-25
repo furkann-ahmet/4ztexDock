@@ -80,7 +80,12 @@ void Icons::configureGlobalTheme()
 QIcon Icons::trySingle(const QString &name)
 {
     if (name.isEmpty()) return QIcon();
-    if (name.contains('/') && QFile::exists(name)) return QIcon(name);
+    // Slash içeren bir name "file path" demek — ya gerçek dosya olmalı, ya da
+    // tema lookup'ı denemek anlamsız (Qt 6.4 ile 6.11 burada farklı davranıyor,
+    // 6.4 path-like string'i theme name kabul ediyor). Mevcut değilse erken çık.
+    if (name.contains('/')) {
+        return QFile::exists(name) ? QIcon(name) : QIcon();
+    }
     QIcon ic = QIcon::fromTheme(name);
     if (!ic.isNull()) return ic;
     const QString lower = name.toLower();

@@ -7,13 +7,20 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# CI scope note:
+#   Unit tests run on Ubuntu 24.04 (Qt 6.4). They cover the pure-data
+#   modules — audio_parser (pactl output parsers) and icons (DesktopIconResolver
+#   + token-fuzzy match). No GUI / KWin / layer-shell dependencies needed.
+#
+#   The full app build is NOT exercised in CI yet. Ubuntu noble's main repo
+#   only ships layer-shell-qt for Qt5 (Plasma 5); the Qt6 (Plasma 6) variant
+#   isn't available there or in kubuntu-ppa/backports as of writing. Once
+#   Ubuntu oracular (24.10) lands as a runner, or once we set up an Arch
+#   container, the full build can be wired up here too.
+
 jobs:
-  # ------------------------------------------------------------------
-  # Job 1: Unit tests. Pure-data parsers (audio_parser, icons) — no
-  # layer-shell or KWin dependency. Runs on plain Ubuntu noble with Qt6.
-  # ------------------------------------------------------------------
   unit-tests:
-    name: Unit tests (Ubuntu, Qt6)
+    name: Unit tests (Ubuntu 24.04, Qt6)
     runs-on: ubuntu-24.04
 
     steps:
@@ -45,61 +52,3 @@ jobs:
             ./$t
             echo "::endgroup::"
           done
-
-  # ------------------------------------------------------------------
-  # Job 2: Best-effort full build. Plasma 6 Qt6 layer-shell-qt-dev isn't
-  # in Ubuntu noble's main repo — we add the Kubuntu backports PPA.
-  # If the PPA fails to install layer-shell-qt6, the job is marked as
-  # failing — useful signal but doesn't block merges.
-  # ------------------------------------------------------------------
-  full-build:
-    name: Full build (Ubuntu, best-effort)
-    runs-on: ubuntu-24.04
-    continue-on-error: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Add Kubuntu backports PPA (Plasma 6 / Qt6 layer-shell-qt)
-        run: |
-          sudo add-apt-repository -y ppa:kubuntu-ppa/backports
-          sudo apt-get update
-
-      - name: Install build deps
-        run: |
-          sudo apt-get install -y --no-install-recommends \
-            qmake6 \
-            qt6-base-dev \
-            qt6-base-dev-tools \
-            qt6-l10n-tools \
-            qt6-wayland-dev \
-            qt6-wayland-dev-tools \
-            libqt6test6 \
-            libqt6opengl6-dev \
-            libxkbcommon-dev \
-            libwayland-dev \
-            libxcb1-dev \
-            libxcb-ewmh-dev \
-            layer-shell-qt-dev \
-            network-manager \
-            pipewire-pulse \
-            build-essential
-
-      - name: Compile translations
-        run: |
-          lrelease6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts \
-            || lrelease-qt6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
-
-      - name: Build main app
-        run: |
-          qmake6 4ztexDock.pro
-          make -j$(nproc) 2>&1 | tee /tmp/build.log
-
-      - name: Fail on warnings
-        run: |
-          if grep -q "warning:" /tmp/build.log; then
-            echo "::error::Build produced compiler warnings"
-            grep "warning:" /tmp/build.log
-            exit 1
-          fi
