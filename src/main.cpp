@@ -2279,6 +2279,16 @@ protected:
             return;
         }
 
+        // Drag başlamadan ÖNCE preview popup'ı varsa kapat. Açık pencere'si
+        // olan task button'larda preview hover timer açık. Drag sırasında
+        // timer ateşlerse preview açılır → surface resize tetiklenir →
+        // Wayland data-device drag session geometriyi değiştiremiyor +
+        // operation iptal oluyor. Sonuç: açık app icon'ları drag edilemiyor.
+        // Bunu engellemek için s_dragInProgress_'i set'leyip OpenWindowsBar'a
+        // sinyal veriyoruz (helper aşağıda).
+        s_dragInProgress_ = true;
+        if (s_onDragStartHook_) s_onDragStartHook_();
+
         auto *drag = new QDrag(this);
         auto *mime = new QMimeData;
         mime->setData("application/x-4ztex-appkey", dragKey_.toUtf8());
@@ -2289,6 +2299,7 @@ protected:
         // DeferredDelete if the app's window closes mid-drag.
         QPointer<TaskItemButton> guard(this);
         drag->exec(Qt::MoveAction);
+        s_dragInProgress_ = false;
         if (!guard) {
             return;
         }
@@ -2296,6 +2307,15 @@ protected:
             s_dragSource_ = nullptr;
         }
     }
+
+public:
+    // OpenWindowsBar ctor'unda set'lenir — drag başlatılır başlatılmaz
+    // preview hide + timer stop için tetiklenir. Static + std::function:
+    // TaskItemButton'da Q_OBJECT yok, signal kullanamıyoruz.
+    static void setOnDragStartHook(std::function<void()> fn) {
+        s_onDragStartHook_ = std::move(fn);
+    }
+    static bool dragInProgress() { return s_dragInProgress_; }
 
 private:
     QPoint dragStart_;
@@ -2308,6 +2328,8 @@ private:
     qreal pulseValue_ = 0.0;
     QVariantAnimation pulseAnim_;
     inline static TaskItemButton *s_dragSource_ = nullptr;
+    inline static bool s_dragInProgress_ = false;
+    inline static std::function<void()> s_onDragStartHook_;
 
 protected:
     void paintEvent(QPaintEvent *e) override
@@ -4219,6 +4241,17 @@ private:
     {
         previewShowTimer_.setSingleShot(true);
         previewShowTimer_.setInterval(420);
+
+        // Drag-aware preview suppression: TaskItemButton drag başlattığında
+        // preview'ı hemen kapat ve timer'ı durdur. Preview surface resize'ı
+        // Wayland drag session'ını kırıyor (açık app icon'ları sürüklenemiyor
+        // bug'ının kök sebebi buydu).
+        TaskItemButton::setOnDragStartHook([this]() {
+            previewShowTimer_.stop();
+            pendingPreviewAnchor_ = nullptr;
+            pendingPreviewKey_.clear();
+            hidePreview(/*instant*/ true);
+        });
         previewHideTimer_.setSingleShot(true);
         // Buton leave → buton enter (swap) için kullanılıyor. Mouse surface'i
         // terk ettiğinde anında kapama yapan ayrı bir yol var (DockWindow
@@ -4256,6 +4289,9 @@ private:
 
     void onButtonHoverEntered(const QString &appKey, TaskItemButton *btn)
     {
+        // Aktif drag sırasında hover preview açma — surface resize Wayland
+        // data-device sessionunu kırıyor, drop'tan önce drag iptal oluyor.
+        if (TaskItemButton::dragInProgress()) return;
         previewHideTimer_.stop();
         if (previewAnchor_ == btn) return;
         auto it = apps_.constFind(appKey);
@@ -7163,8 +7199,27 @@ int main(int argc, char *argv[])
         trayOverflowList->addStretch(1);
     };
 
+    // Tray button left/middle/right click davranışı. Helper lambda — hem inline
+    // tray button hem overflow popup row paylaşır.
+    auto openTrayContextMenu = [openWindows](TrayItem *item, QWidget *anchor) {
+        const QList<TrayMenuEntry> entries = item->fetchMenuEntries();
+        if (!entries.isEmpty()) {
+            openWindows->hidePreview(true);
+            // Custom popup: QMenu Wayland layer-shell parent'ında doğru
+            // konumlanmıyor, kendi pencere widget'ımızla göstereriz.
+            auto *popup = new TrayMenuPopup(item, entries, anchor->window());
+            popup->setAttribute(Qt::WA_DeleteOnClose);
+            popup->showAbove(anchor);
+        } else {
+            // Eski DBusMenu yok olan app'ler için fallback: simple ContextMenu()
+            // DBus call — uygulama kendi menüsünü gösterir.
+            const QPoint global = anchor->mapToGlobal(anchor->rect().center());
+            item->contextMenu(global.x(), global.y());
+        }
+    };
+
     QObject::connect(trayBridge, &TrayBridge::itemAdded,
-                     [trayButtons, trayAppsLayout, refreshTrayLayout, openWindows](TrayItem *item) {
+                     [trayButtons, trayAppsLayout, refreshTrayLayout, openTrayContextMenu](TrayItem *item) {
         auto *btn = new HoverPressIconButton;
         btn->setFixedSize(36, 36);
         btn->setIconSize({20, 20});
@@ -7173,28 +7228,23 @@ int main(int argc, char *argv[])
         btn->setIcon(item->icon());
         btn->setToolTip(item->title());
 
-        QObject::connect(btn, &QPushButton::clicked, [item, btn]() {
+        // Left click: spec'e göre `ItemIsMenu=true` olan app'ler için Activate
+        // çağırmamak gerek — onlar yalnızca menü gösterirler. Default: Activate.
+        // Pratikte birçok app Activate'i no-op bırakıyor → kullanıcı tıklayıp
+        // hiçbir şey görmüyor. Spec uyumu için ItemIsMenu kontrol ediliyor.
+        QObject::connect(btn, &QPushButton::clicked,
+                         [item, btn, openTrayContextMenu]() {
+            if (item->itemIsMenu()) {
+                openTrayContextMenu(item, btn);
+                return;
+            }
             const QPoint p = btn->mapToGlobal(btn->rect().center());
             item->activate(p.x(), p.y());
         });
+        // Right click: her zaman context menu.
         QObject::connect(btn, &QWidget::customContextMenuRequested,
-                         [item, btn, openWindows](const QPoint &pos) {
-            const QList<TrayMenuEntry> entries = item->fetchMenuEntries();
-            if (!entries.isEmpty()) {
-                openWindows->hidePreview(true);
-                // Custom popup positioned with the same mapToGlobal+move
-                // pattern as LauncherMenu / NotificationsPanel — that pair
-                // works on Wayland layer-shell while QMenu::popup() does
-                // not, so we render the DBusMenu ourselves.
-                auto *popup = new TrayMenuPopup(item, entries, btn->window());
-                popup->setAttribute(Qt::WA_DeleteOnClose);
-                popup->showAbove(btn);
-            } else {
-                // Older apps that only implement the simple ContextMenu()
-                // DBus method — let them show their own menu.
-                const QPoint global = btn->mapToGlobal(pos);
-                item->contextMenu(global.x(), global.y());
-            }
+                         [item, btn, openTrayContextMenu](const QPoint &) {
+            openTrayContextMenu(item, btn);
         });
 
         trayButtons->insert(item, btn);
@@ -7203,9 +7253,17 @@ int main(int argc, char *argv[])
     });
 
     QObject::connect(trayBridge, &TrayBridge::itemRemoved,
-                     [trayButtons, refreshTrayLayout](TrayItem *item) {
+                     [trayButtons, trayAppsLayout, refreshTrayLayout](TrayItem *item) {
         auto *btn = trayButtons->take(item);
-        if (btn) btn->deleteLater();
+        if (btn) {
+            // deleteLater tek başına yetersiz: widget event loop sonuna kadar
+            // layout'ta kalıyor, o aralık görsel boşluk + diğer ikonların
+            // shift'i göze çarpıyor. Önce layout'tan çıkar + gizle, gerçek
+            // delete bir tick sonra olsun.
+            trayAppsLayout->removeWidget(btn);
+            btn->hide();
+            btn->deleteLater();
+        }
         refreshTrayLayout();
     });
 

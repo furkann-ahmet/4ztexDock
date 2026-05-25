@@ -236,6 +236,13 @@ void TrayItem::refresh()
     title_ = iface.property("Title").toString();
     iconName_ = iface.property("IconName").toString();
     status_ = iface.property("Status").toString();
+    // ItemIsMenu (StatusNotifier spec): true ise app yalnızca context menu
+    // destekliyor demek — left-click `Activate` çağrılmamalı, doğrudan menu
+    // gösterilmeli. Spec'te default false. Property yoksa toString() boş
+    // string döner → toLower() boş kalır → comparison false → güvenli default.
+    itemIsMenu_ = (iface.property("ItemIsMenu").toString().toLower()
+                       == QLatin1String("true"))
+                  || iface.property("ItemIsMenu").toBool();
     ownerName_ = computeOwnerName();
 
     // ToolTip property uses signature (s a(iiay) s s) — the inner pixmap

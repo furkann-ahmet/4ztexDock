@@ -80,6 +80,9 @@ public:
     QString status() const { return status_; }
     QString toolTipTitle() const { return tooltipTitle_; }
     QString toolTipText() const { return tooltipText_; }
+    // App declared `ItemIsMenu=true` — left-click should show its context
+    // menu instead of calling Activate (which the app considers a no-op).
+    bool itemIsMenu() const { return itemIsMenu_; }
     // Resolved QIcon: prefers IconName via theme lookup with progressive
     // fallbacks (stripped suffixes, last-segment basename), and finally a
     // generic placeholder so the button is never empty.
@@ -120,5 +123,6 @@ private:
     QString ownerName_;     // /proc/<pid>/comm of the bus-name owner — used
                             // to disambiguate Electron apps whose Title is
                             // an auto-generated "chrome_status_icon_N"
+    bool itemIsMenu_ = false;
     QIcon icon_;
 };
