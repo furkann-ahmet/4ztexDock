@@ -2,6 +2,11 @@
 
 > A Wayland layer-shell taskbar / launcher / dock for KDE Plasma 5 & 6.
 
+[![AUR version](https://img.shields.io/aur/version/4ztexdock-git?label=AUR&color=1793d1)](https://aur.archlinux.org/packages/4ztexdock-git)
+[![AUR last modified](https://img.shields.io/aur/last-modified/4ztexdock-git?label=updated)](https://aur.archlinux.org/packages/4ztexdock-git)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+[![CI](https://github.com/furkann-ahmet/4ztexDock/actions/workflows/ci.yml/badge.svg)](https://github.com/furkann-ahmet/4ztexDock/actions/workflows/ci.yml)
+
 **Languages:** [Türkçe](README.tr.md) · **English**
 
 4ztexDock is a custom dock built to replace KDE Plasma's default panel. It
