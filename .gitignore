@@ -1,0 +1,46 @@
+# qmake / make
+build/
+.qmake.stash
+Makefile
+*.o
+*.moc
+moc_*.cpp
+moc_*.h
+moc_predefs.h
+qrc_*.cpp
+
+# i18n: .qm derleme çıktıları (lrelease6 ile .ts'ten üretilir)
+translations/*.qm
+
+# binary
+/4ztexDock
+/4ztexToolbar
+
+# test binary'leri
+/tests/*/audio_parser_test
+/tests/*/icons_test
+/tests/*/Makefile
+
+# makepkg work dirs + paket çıktıları
+packaging/src/
+packaging/pkg/
+packaging/*.pkg.tar.zst
+packaging/*.pkg.tar.xz
+packaging/*.sig
+
+# Editor / IDE
+.vscode/
+.idea/
+*.kdev4
+*.swp
+
+# AI assistant local state
+.claude/
+CLAUDE.md
+*.claude.local.*
+
+# Geçici
+*.tmp
+*.log
+*~
+.DS_Store

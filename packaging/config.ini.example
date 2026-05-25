@@ -1,0 +1,28 @@
+# 4ztexDock — kullanıcı config dosyası
+# Konum: ~/.config/4ztexDock/config.ini
+#
+# Tüm key'ler opsiyonel. Bu dosya bir referans şablon — istediklerini
+# açıp düzenle, gerisini sil. Değişiklik sonrası dock'u restart et:
+#   pkill -x 4ztexDock; /usr/bin/4ztexDock &; disown
+
+[Display]
+# Hangi ekran üzerinde dock açılsın. Boşsa otomatik (KDE primary → Qt primary).
+# Connector adı (DP-1, HDMI-A-1, eDP-1) veya manufacturer/model/serial.
+# `4ztexDock --help` start'ta available screens'i log'lar.
+#screen=DP-3
+
+[Appearance]
+# Accent rengi — slider sub-page, focused border, active row highlight.
+# Format: R,G,B (her biri 0-255).
+# Default: 167,139,250 (violet-400 — Tailwind palette)
+# Diğer öneriler:
+#   59,130,246    blue-500
+#   34,197,94     green-500
+#   239,68,68     red-500
+#   249,115,22    orange-500
+#accent=167,139,250
+
+[Launcher]
+# Sık Kullanılanlar grid'inde kaç app gözüksün (1-16).
+# Default: 8 (4×2 grid). Çok artırırsan launcher menüsü uzar.
+#frequentLimit=8

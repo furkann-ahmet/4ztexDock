@@ -1,0 +1,677 @@
+/* ============================================================
+   4ztexDock — design system (v3)
+
+   Tek bir token tablosu; tüm bileşenler bundan içer. Drift kapalı.
+
+   RADIUS scale
+     8  : compact buttons, scrollbar handle, pill chip
+    10  : flat rows, freq tile, launcher pill, conn action
+    12  : panel card, quick tile, audio/conn row, audio mute
+    14  : popup search input
+
+   SURFACE alpha (white on dark)
+    10  : surface-1   default card/row/tile bg
+    18  : surface-2   hover
+    30  : surface-3   active / strong tile
+    46  : surface-4   pressed / overflow chip hot
+
+   STROKE alpha
+    14  : stroke-1   default border, separator
+    26  : stroke-2   hover border, secondary action border
+    40  : stroke-3   strong border (active rows, focused)
+
+   ACCENT  violet-400  rgb(167,139,250)
+    24  : a-bg-1   accent surface (active row/tile)
+    42  : a-bg-2   accent hover
+    90  : a-bd-1   accent border
+   140  : a-bd-2   accent border hover
+   220+ : a-bd-3   slider fill / pressed accent border
+
+   TEXT
+    t-1 rgba(244,244,245, 245)   primary (titles, body)
+    t-2 rgba(220,220,230, 220)   emphasized secondary
+    t-3 rgba(161,161,170, 200)   secondary (subtitles, hints)
+    t-4 rgba(113,113,122, 180)   muted (section headers, captions)
+   ============================================================ */
+
+
+/* ---------- Base ---------- */
+
+QWidget {
+    color: rgba(244, 244, 245, 245);
+    font-family: "Inter", "SF Pro Display", "Noto Sans", sans-serif;
+    font-size: 13px;
+}
+
+QWidget#dockWindow {
+    background: transparent;
+}
+
+
+/* ---------- Buttons (default) ---------- */
+
+QPushButton {
+    background: transparent;
+    border: none;
+    color: rgba(244, 244, 245, 245);
+}
+
+QPushButton:hover {
+    background: rgba(255, 255, 255, 18);
+}
+
+QPushButton#mainButton,
+QPushButton#mainButton:hover {
+    background: transparent;
+    border: none;
+    padding: 10px;
+}
+
+
+/* ---------- Workspace pills ---------- */
+
+QPushButton[class="workspace"] {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: rgba(161, 161, 170, 200);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QPushButton[class="workspace"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+    color: rgba(244, 244, 245, 245);
+}
+
+QPushButton[class="workspace active"] {
+    background: rgba(255, 255, 255, 30);
+    border: 1px solid rgba(255, 255, 255, 40);
+    border-radius: 10px;
+    color: rgba(244, 244, 245, 248);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QPushButton[class="workspace active"]:hover {
+    background: rgba(255, 255, 255, 46);
+    border-color: rgba(255, 255, 255, 56);
+}
+
+
+/* ---------- Pinned launcher icons & tray ----------
+   Hover/press/active state animasyonu C++ tarafinda (HoverPressIconButton);
+   QSS sadece varsayilan font/color icin. */
+
+QPushButton[class="iconButton"],
+QPushButton[class="trayButton"] {
+    background: transparent;
+    border: none;
+    color: rgba(244, 244, 245, 245);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QPushButton[class="trayButton"] {
+    font-size: 10px;
+}
+
+
+/* ---------- Separators ---------- */
+
+QFrame#dockSeparator {
+    background: rgba(255, 255, 255, 14);
+    border: none;
+}
+
+
+/* ---------- Active window label ---------- */
+
+QWidget#activeWindowLabel {
+    background: transparent;
+}
+
+QLabel#activeWindowTitle {
+    background: transparent;
+    color: rgba(244, 244, 245, 248);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+}
+
+QLabel#activeWindowSubtitle {
+    background: transparent;
+    color: rgba(161, 161, 170, 200);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+}
+
+
+/* ---------- Open windows task list ----------
+   taskItem'in bg/hover/active paint'i tamamen C++'da (TaskItemButton).
+   Aktif durum 2px violet accent underline ile vurgulaniyor. */
+
+QWidget#openWindowsBar {
+    background: transparent;
+}
+
+QPushButton[class="taskItem"],
+QPushButton[class="taskItem active"] {
+    background: transparent;
+    border: none;
+}
+
+QPushButton[class="taskItem overflow"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 26);
+    border-radius: 10px;
+    color: rgba(161, 161, 170, 200);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0;
+}
+
+QPushButton[class="taskItem overflow"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 40);
+    color: rgba(244, 244, 245, 245);
+}
+
+
+/* ---------- Clock & now playing ---------- */
+
+QWidget#clockBlock {
+    background: transparent;
+}
+
+QWidget#nowPlaying {
+    background: transparent;
+}
+
+QWidget#nowPlayingMarquee {
+    background: transparent;
+    color: rgba(244, 244, 245, 245);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+}
+
+/* Media control buton bg/hover/press C++ tarafinda (HoverPressIconButton). */
+
+QLabel#clockLabel {
+    background: transparent;
+    color: rgba(244, 244, 245, 248);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+}
+
+QLabel#clockDateLabel {
+    background: transparent;
+    color: rgba(161, 161, 170, 200);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+
+/* ---------- Launcher menu (popup) ---------- */
+
+QLineEdit#popupSearch {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 26);
+    border-radius: 14px;
+    color: rgba(244, 244, 245, 245);
+    padding: 0 16px;
+    font-size: 14px;
+    selection-background-color: rgba(167, 139, 250, 90);
+}
+
+QLineEdit#popupSearch:focus {
+    border-color: rgba(167, 139, 250, 140);
+    background: rgba(255, 255, 255, 18);
+}
+
+
+/* ---------- Launcher: flat row + selected highlight ---------- */
+
+QWidget[class~="launcherRow"] {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+}
+
+QWidget[class~="launcherRow"]:hover {
+    background: rgba(255, 255, 255, 18);
+}
+
+QWidget[class~="launcherRow"][class~="selected"] {
+    background: rgba(167, 139, 250, 24);
+    border: 1px solid rgba(167, 139, 250, 90);
+}
+
+QWidget[class~="launcherRow"][class~="selected"]:hover {
+    background: rgba(167, 139, 250, 42);
+}
+
+
+/* ---------- Launcher: frequent app tile (grid) ---------- */
+
+QToolButton[class~="launcherFreq"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 10px;
+    color: rgba(244, 244, 245, 245);
+    font-size: 11px;
+    font-weight: 500;
+    padding-top: 6px;
+}
+
+QToolButton[class~="launcherFreq"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+QToolButton[class~="launcherFreq"]:pressed {
+    background: rgba(167, 139, 250, 24);
+    border-color: rgba(167, 139, 250, 90);
+}
+
+
+/* ---------- Launcher: horizontal pill (folder/session shortcuts) ---------- */
+
+QPushButton[class~="launcherPill"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 10px;
+    color: rgba(220, 220, 230, 220);
+    font-size: 11px;
+    font-weight: 500;
+    text-align: left;
+    padding-left: 10px;
+}
+
+QPushButton[class~="launcherPill"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+    color: rgba(244, 244, 245, 245);
+}
+
+QPushButton[class~="launcherPill"]:pressed {
+    background: rgba(255, 255, 255, 30);
+}
+
+
+/* ---------- Recent / overflow items (launcher list rows) ---------- */
+
+QPushButton[class="recentItem"] {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: rgba(161, 161, 170, 200);
+    text-align: left;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+QPushButton[class="recentItem"]:hover {
+    background: rgba(255, 255, 255, 18);
+    color: rgba(244, 244, 245, 245);
+}
+
+QToolButton[class="launcherApp"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 14px;
+    color: rgba(244, 244, 245, 245);
+    font-size: 11px;
+    padding-top: 8px;
+}
+
+QToolButton[class="launcherApp"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+QPushButton[class="shortcutButton"] {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: rgba(220, 220, 230, 220);
+    text-align: left;
+    padding-left: 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+QPushButton[class="shortcutButton"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+    color: rgba(244, 244, 245, 245);
+}
+
+QPushButton[class="shortcutButton"]:pressed {
+    background: rgba(255, 255, 255, 30);
+}
+
+QPushButton[class="overflowItem"] {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: rgba(244, 244, 245, 245);
+    text-align: left;
+    padding-left: 10px;
+    font-size: 13px;
+}
+
+QPushButton[class="overflowItem"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+
+/* ============================================================
+   Shared panel surfaces (audio + network + launcher)
+   ============================================================ */
+
+/* ---------- Quick settings / tile grid (network panel) ---------- */
+
+QPushButton[class~="quickTile"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 12px;
+    color: rgba(244, 244, 245, 245);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    padding-left: 14px;
+    padding-right: 12px;
+    letter-spacing: -0.05px;
+}
+
+QPushButton[class~="quickTile"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+QPushButton[class~="quickTile"][class~="active"] {
+    background: rgba(167, 139, 250, 24);
+    border: 1px solid rgba(167, 139, 250, 90);
+    color: rgba(237, 233, 254, 248);
+    font-weight: 600;
+}
+
+QPushButton[class~="quickTile"][class~="active"]:hover {
+    background: rgba(167, 139, 250, 42);
+    border-color: rgba(167, 139, 250, 140);
+}
+
+
+/* ---------- Inline slider rows ---------- */
+
+QLabel#sliderLabel {
+    color: rgba(244, 244, 245, 245);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+QLabel#sliderValue {
+    color: rgba(161, 161, 170, 200);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QSlider#quickSlider::groove:horizontal {
+    height: 4px;
+    background: rgba(255, 255, 255, 26);
+    border-radius: 2px;
+}
+
+QSlider#quickSlider::sub-page:horizontal {
+    background: rgba(167, 139, 250, 220);
+    border-radius: 2px;
+}
+
+QSlider#quickSlider::add-page:horizontal {
+    background: transparent;
+}
+
+QSlider#quickSlider::handle:horizontal {
+    width: 14px;
+    margin-top: -6px;
+    margin-bottom: -6px;
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 8px;
+    background-color: rgba(250, 248, 255, 250);
+    border: 1px solid rgba(167, 139, 250, 90);
+}
+
+QSlider#quickSlider::handle:horizontal:hover {
+    background-color: rgba(255, 255, 255, 252);
+    border: 1px solid rgba(167, 139, 250, 140);
+}
+
+QSlider#quickSlider::handle:horizontal:pressed {
+    background-color: rgba(237, 233, 254, 252);
+    border: 1px solid rgba(167, 139, 250, 220);
+}
+
+
+/* ---------- Slim scrollbars (popup'larda) ---------- */
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 4px 2px;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: rgba(255, 255, 255, 30);
+    border-radius: 3px;
+    min-height: 28px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: rgba(255, 255, 255, 46);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+    border: none;
+    height: 0;
+    width: 0;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 2px 4px;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background: rgba(255, 255, 255, 30);
+    border-radius: 3px;
+    min-width: 28px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: rgba(255, 255, 255, 46);
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+    border: none;
+    height: 0;
+    width: 0;
+}
+
+
+/* ---------- Pills ---------- */
+
+QLabel[class="pill"] {
+    background: rgba(255, 255, 255, 18);
+    border: 1px solid rgba(255, 255, 255, 26);
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+
+/* ---------- Section headers (her panelde ortak — TEK STİL) ---------- */
+
+QLabel#popupTitle,
+QLabel#popupSection,
+QLabel#audioSection {
+    color: rgba(113, 113, 122, 180);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding-left: 2px;
+    padding-bottom: 4px;
+    background: transparent;
+}
+
+
+/* ---------- Network / system panel — connection card ---------- */
+
+QWidget[class~="connCard"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 12px;
+}
+
+QLabel#connCardTitle {
+    color: rgba(244, 244, 245, 248);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    background: transparent;
+}
+
+QLabel#connCardSub {
+    color: rgba(161, 161, 170, 200);
+    font-size: 11px;
+    font-weight: 500;
+    background: transparent;
+}
+
+QPushButton[class~="connCardAction"] {
+    background: rgba(255, 255, 255, 18);
+    border: 1px solid rgba(255, 255, 255, 26);
+    border-radius: 10px;
+    color: rgba(244, 244, 245, 245);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+}
+
+QPushButton[class~="connCardAction"]:hover {
+    background: rgba(255, 255, 255, 30);
+    border-color: rgba(255, 255, 255, 40);
+}
+
+
+/* ---------- Audio panel — modern underline-tab look ---------- */
+
+QPushButton[class~="audioTab"] {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    color: rgba(161, 161, 170, 200);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 4px;
+}
+
+QPushButton[class~="audioTab"]:hover {
+    color: rgba(244, 244, 245, 245);
+}
+
+QPushButton[class~="audioTab"]:checked {
+    color: rgba(244, 244, 245, 248);
+    border-bottom: 2px solid rgba(167, 139, 250, 220);
+}
+
+QLabel#audioEmpty {
+    color: rgba(113, 113, 122, 180);
+    font-size: 12px;
+    padding: 16px 4px;
+}
+
+/* Cihaz/uygulama satır kartları */
+
+QWidget[class~="audioRow"] {
+    background: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 14);
+    border-radius: 12px;
+}
+
+QWidget[class~="audioRow"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+QWidget[class~="audioRow"][class~="active"] {
+    background: rgba(167, 139, 250, 24);
+    border: 1px solid rgba(167, 139, 250, 90);
+}
+
+QWidget[class~="audioRow"][class~="active"]:hover {
+    background: rgba(167, 139, 250, 42);
+    border-color: rgba(167, 139, 250, 140);
+}
+
+QWidget[class~="audioRow"][class~="muted"] {
+    background: rgba(255, 255, 255, 10);
+    border-color: rgba(255, 255, 255, 14);
+}
+
+QLabel#audioName {
+    color: rgba(244, 244, 245, 248);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    background: transparent;
+}
+
+QLabel#audioHint {
+    color: rgba(161, 161, 170, 200);
+    font-size: 11px;
+    font-weight: 500;
+    background: transparent;
+}
+
+QLabel#audioPercent {
+    color: rgba(220, 220, 230, 220);
+    font-size: 11px;
+    font-weight: 600;
+    background: transparent;
+}
+
+QPushButton[class~="audioMute"] {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+QPushButton[class~="audioMute"]:hover {
+    background: rgba(255, 255, 255, 18);
+    border-color: rgba(255, 255, 255, 26);
+}
+
+QScrollArea#audioScroll {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#audioScroll > QWidget > QWidget {
+    background: transparent;
+}

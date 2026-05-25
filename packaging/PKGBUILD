@@ -1,0 +1,92 @@
+# Maintainer: 4ztex <furkan.ahmet@kuika.com>
+pkgname=4ztexdock
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Wayland layer-shell taskbar/launcher for KDE Plasma"
+arch=('x86_64')
+url=""
+license=('GPL-3.0-or-later')
+depends=(
+  'qt6-base'
+  'qt6-wayland'
+  'layer-shell-qt'
+  'libxcb'           # X11 dock window (Plasma X11 desteği için)
+  'xcb-util-wm'      # xcb-ewmh
+  'networkmanager'
+  'pipewire-pulse'
+)
+makedepends=(
+  'qt6-base'
+  'qt6-wayland'
+  'qt6-tools'        # lrelease6 / lupdate6 — .ts → .qm derleme için
+  'layer-shell-qt'
+  'pkgconf'
+)
+optdepends=(
+  'spectacle: ekran görüntüsü kısayolu için'
+  'kcmshell6: ayarlar kısayolları için'
+  'powerprofilesctl: laptop güç profili tile için'
+)
+provides=('4ztexdock')
+install=4ztexdock.install
+
+# Yerelden derliyoruz — repo'nun bulunduğu dizini kaynak olarak alır.
+# AUR'a yayınlanırsa source=() git tag/url ile değiştirilir.
+source=()
+sha256sums=()
+
+# Build dir — repo'nun parent klasörü
+_repo_dir="$startdir/.."
+
+prepare() {
+  # rsync ile kopyala — packaging/src ve packaging/pkg'i exclude et ki
+  # makepkg'in kendi srcdir/pkgdir'ı recursive kopyalanmasın.
+  rsync -a --delete \
+    --exclude='packaging/src' --exclude='packaging/pkg' \
+    --exclude='packaging/*.pkg.tar*' \
+    "$_repo_dir/" "$srcdir/4ztexDock/"
+  cd "$srcdir/4ztexDock"
+  # Önceki build artefactlarını temizle
+  rm -f *.o moc_*.cpp moc_*.h Makefile 4ztexDock
+  rm -f protocols/*.o
+}
+
+build() {
+  cd "$srcdir/4ztexDock"
+  # Önce çevirileri derle — translations.qrc .qm dosyalarını bundle eder; .qm
+  # mevcut değilse qmake çağrısı qrc'de eksik dosya hatası verir.
+  lrelease6 translations/4ztexDock_tr.ts translations/4ztexDock_en.ts
+  qmake6 4ztexDock.pro
+  make -j$(nproc)
+}
+
+package() {
+  cd "$srcdir/4ztexDock"
+  install -Dm755 4ztexDock "$pkgdir/usr/bin/4ztexDock"
+  install -Dm644 style/dock.qss "$pkgdir/usr/share/4ztexDock/style/dock.qss"
+  # Icon klasörü — sadece dosyaları, alt klasörleri (backups vs.) atla
+  for f in icons/*; do
+    [ -f "$f" ] || continue
+    install -Dm644 "$f" "$pkgdir/usr/bin/icons/$(basename "$f")"
+  done
+  # Asıl icon hicolor'a
+  if [ -f icons/4ztex-icon.svg ]; then
+    install -Dm644 icons/4ztex-icon.svg \
+      "$pkgdir/usr/share/icons/hicolor/scalable/apps/4ztex-icon.svg"
+  fi
+  # .desktop dosyası (KWin ScreenShot2 yetkisi için NEEDED)
+  sed "s|@PREFIX@|/usr|g" packaging/4ztexDock.desktop.in \
+    > "$srcdir/4ztexDock.desktop"
+  install -Dm644 "$srcdir/4ztexDock.desktop" \
+    "$pkgdir/usr/share/applications/com.4ztex.dock.desktop"
+  # XDG autostart — Plasma session başlayınca .desktop'tan launch eder, KWin
+  # proper systemd scope (app-com.4ztex.dock-...) içinde caller'ı tanır.
+  # systemd user unit kullanmıyoruz; o yol caller validation'ı kırıyor.
+  install -Dm644 "$srcdir/4ztexDock.desktop" \
+    "$pkgdir/etc/xdg/autostart/com.4ztex.dock.desktop"
+  # Lisans
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  # Örnek config (kullanıcı ~/.config/4ztexDock/config.ini'e kopyalar)
+  install -Dm644 packaging/config.ini.example \
+    "$pkgdir/usr/share/doc/$pkgname/config.ini.example"
+}

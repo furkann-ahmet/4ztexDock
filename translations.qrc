@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/translations">
+    <file alias="4ztexDock_tr.qm">translations/4ztexDock_tr.qm</file>
+    <file alias="4ztexDock_en.qm">translations/4ztexDock_en.qm</file>
+</qresource>
+</RCC>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=4ztex Dock
+GenericName=Desktop Toolbar
+Comment=Wayland layer-shell taskbar/dock
+Exec=@PREFIX@/bin/4ztexDock
+Icon=4ztex-icon
+Terminal=false
+Categories=Utility;Settings;DesktopSettings;
+StartupNotify=false
+X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
